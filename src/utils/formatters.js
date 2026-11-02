@@ -1,10 +1,19 @@
-// Utility helpers for Soft-Dew Beauty & Salon Platform
+// Utility helpers for Salonix Pro / Soft-Dew Beauty & Salon Platform
 
-export const formatPrice = (amount, currency = 'BDT') => {
+export const toBengaliDigits = (num) => {
+  if (num === null || num === undefined) return '';
+  const bengaliNumbers = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+  return String(num).replace(/[0-9]/g, (w) => bengaliNumbers[+w]);
+};
+
+export const formatPrice = (amount, currency = 'BDT', lang = 'bn') => {
+  const num = Math.round(Number(amount) || 0);
   if (currency === 'BDT') {
-    return `৳${Number(amount).toLocaleString('en-BD')}`;
+    const formatted = num.toLocaleString('en-US');
+    return lang === 'bn' ? `৳ ${toBengaliDigits(formatted)}` : `৳ ${formatted}`;
   }
-  return `$${(Number(amount) / 120).toFixed(2)}`;
+  const usd = (num / 122).toFixed(2);
+  return `$${usd}`;
 };
 
 export const calculateDiscount = (originalPrice, discountPrice) => {
@@ -12,6 +21,20 @@ export const calculateDiscount = (originalPrice, discountPrice) => {
   return Math.round(((originalPrice - discountPrice) / originalPrice) * 100);
 };
 
-export const generateId = (prefix = 'SDW') => {
-  return `${prefix}-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 1000)}`;
+export const generateId = (prefix = 'SLX') => {
+  return `${prefix}-${Math.floor(1000 + Math.random() * 9000)}`;
+};
+
+export const formatDate = (dateString, lang = 'bn') => {
+  try {
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return dateString;
+    return d.toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  } catch {
+    return dateString;
+  }
 };

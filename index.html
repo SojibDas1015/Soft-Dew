@@ -1,18 +1,82 @@
 <!doctype html>
-<html lang="en">
+<html lang="bn">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✨</text></svg>" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✂️</text></svg>" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Soft-Dew — Pure. Clinical. Luminous.</title>
-    <meta name="description" content="Soft-Dew. The apex of clinical salon formulations and luxury beauty appointments. 100% authentic, verified by dermatologists." />
-    <meta name="theme-color" content="#000000" />
-    <!-- Google Fonts: Inter -->
+    <title>Soft Dew — বাংলাদেশের সর্ববৃহৎ সেলুন আইটেম বিক্রয়ের নির্ভরযোগ্য অনলাইন শপ</title>
+    <meta name="description" content="সেলুনের প্রয়োজনীয় কাঁচি, ট্রিমার, হেয়ার ড্রায়ার, হেয়ার কালার, ফেসিয়াল স্ক্রাব ও সেলুন ফার্নিচার এখন এক জায়গায় — সফট ডিউ প্রফেশনাল অনলাইন শপ।" />
+    <meta name="theme-color" content="#0F6E5E" />
+    
+    <!-- Google Fonts: Inter & Hind Siliguri for authentic Bengali typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS Engine -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Hind Siliguri', 'Inter', 'system-ui', 'sans-serif'],
+            },
+            colors: {
+              teal: {
+                50: '#f0fdfa',
+                100: '#ccfbf1',
+                200: '#99f6e4',
+                300: '#5eead4',
+                400: '#2dd4bf',
+                500: '#14b8a6',
+                600: '#0d9488',
+                700: '#0F6E5E', // SalonixBD Official Teal
+                800: '#0d6153',
+                900: '#09473d',
+                950: '#031815'  // SalonixBD Dark Mode BG
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      body {
+        font-family: 'Hind Siliguri', 'Inter', system-ui, sans-serif;
+      }
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(15, 110, 94, 0.25);
+        border-radius: 9999px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: rgba(15, 110, 94, 0.5);
+      }
+      @keyframes slideRight {
+        from { transform: translateX(-100%); }
+        to { transform: translateX(0); }
+      }
+      @keyframes slideLeft {
+        from { transform: translateX(100%); }
+        to { transform: translateX(0); }
+      }
+      .animate-slide-right {
+        animation: slideRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+      .animate-slide-left {
+        animation: slideLeft 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+    </style>
   </head>
-  <body>
+  <body class="bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased selection:bg-teal-600 selection:text-white">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
