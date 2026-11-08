@@ -5,13 +5,10 @@ import {
   KeyRound, 
   Eye, 
   EyeOff, 
-  CheckCircle2, 
   AlertCircle, 
   ShieldCheck, 
-  Sparkles, 
   ArrowRight,
-  X,
-  Database
+  X
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 
@@ -24,8 +21,8 @@ export const AdminLoginModal = () => {
     lang 
   } = useStore();
 
-  const [identifier, setIdentifier] = useState('admin@softdew.com');
-  const [password, setPassword] = useState('SoftDew@2026');
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
@@ -36,24 +33,35 @@ export const AdminLoginModal = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
+
+    if (!identifier.trim() || !password.trim()) {
+      setErrorMsg(lang === 'bn' ? 'অনুগ্রহ করে ইউজারনেম এবং পাসওয়ার্ড দিন।' : 'Please enter your username and password.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const res = await loginAdmin(identifier, password, rememberMe);
       if (!res.success) {
-        setErrorMsg(res.message || 'ভুল ইউজার বা পাসওয়ার্ড! সঠিক তথ্য দিন।');
+        setErrorMsg(res.message || (lang === 'bn' ? 'ভুল ইউজার বা পাসওয়ার্ড! সঠিক তথ্য দিন।' : 'Invalid credentials.'));
+      } else {
+        // Clear fields on success
+        setIdentifier('');
+        setPassword('');
       }
     } catch {
-      setErrorMsg('লগইন করার সময় ত্রুটি দেখা দিয়েছে। আবার চেষ্টা করুন।');
+      setErrorMsg(lang === 'bn' ? 'লগইন করার সময় ত্রুটি দেখা দিয়েছে। আবার চেষ্টা করুন।' : 'Login error. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleQuickFill = () => {
-    setIdentifier('admin@softdew.com');
-    setPassword('SoftDew@2026');
+  const handleClose = () => {
+    setIsAdminLoginModalOpen(false);
     setErrorMsg('');
+    setIdentifier('');
+    setPassword('');
   };
 
   return (
@@ -61,7 +69,7 @@ export const AdminLoginModal = () => {
       {/* Backdrop */}
       <div 
         className="fixed inset-0 bg-slate-950/70 backdrop-blur-md transition-opacity"
-        onClick={() => setIsAdminLoginModalOpen(false)}
+        onClick={handleClose}
       />
 
       {/* Modal Dialog Card */}
@@ -69,7 +77,7 @@ export const AdminLoginModal = () => {
         {/* Top Header Glow */}
         <div className="bg-gradient-to-r from-teal-800 via-teal-700 to-emerald-700 p-6 text-white text-center relative">
           <button
-            onClick={() => setIsAdminLoginModalOpen(false)}
+            onClick={handleClose}
             className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition-colors"
             title="Close"
           >
@@ -93,8 +101,8 @@ export const AdminLoginModal = () => {
             <ShieldCheck size={13} className="text-emerald-300" />
             <span>
               {isSupabaseActive 
-                ? (lang === 'bn' ? 'সুপাবেস ক্লাউড ডাটাবেজ সিকিউর্ড' : 'Supabase Cloud Database Secured') 
-                : (lang === 'bn' ? 'অ্যাডমিন সিকিউরিটি গার্ড সক্রিয়' : 'Protected Admin Access')}
+                ? (lang === 'bn' ? 'সুপাবেস সিকিউর্ড ডাটাবেজ' : 'Supabase Cloud Database Secured') 
+                : (lang === 'bn' ? 'সুরক্ষিত অ্যাডমিন অ্যাক্সেস' : 'Protected Admin Access')}
             </span>
           </div>
         </div>
@@ -103,13 +111,13 @@ export const AdminLoginModal = () => {
         <div className="p-6">
           {/* Error Message if any */}
           {errorMsg && (
-            <div className="mb-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+            <div className="mb-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2 animate-fade-in">
               <AlertCircle size={15} className="shrink-0" />
               <span>{errorMsg}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
             {/* Username / Email Field */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
@@ -120,9 +128,10 @@ export const AdminLoginModal = () => {
                 <input
                   type="text"
                   required
+                  autoComplete="off"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="admin@softdew.com"
+                  placeholder={lang === 'bn' ? 'আপনার ইউজারনেম বা ইমেইল লিখুন...' : 'Enter your username or email...'}
                   className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-600 transition-all"
                 />
               </div>
@@ -138,9 +147,10 @@ export const AdminLoginModal = () => {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
+                  autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••••••"
+                  placeholder={lang === 'bn' ? 'পাসওয়ার্ড লিখুন...' : 'Enter password...'}
                   className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-600 transition-all"
                 />
                 <button
@@ -155,7 +165,7 @@ export const AdminLoginModal = () => {
             </div>
 
             {/* Remember Me */}
-            <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center text-xs">
               <label className="flex items-center gap-2 cursor-pointer text-slate-600 dark:text-slate-400">
                 <input
                   type="checkbox"
@@ -163,16 +173,8 @@ export const AdminLoginModal = () => {
                   onChange={(e) => setRememberMe(e.target.checked)}
                   className="rounded border-slate-300 text-teal-700 focus:ring-teal-500"
                 />
-                <span>{lang === 'bn' ? 'লগইন মনে রাখুন' : 'Remember me'}</span>
+                <span>{lang === 'bn' ? 'এই ডিভাইসে লগইন মনে রাখুন' : 'Remember me on this device'}</span>
               </label>
-
-              <button
-                type="button"
-                onClick={handleQuickFill}
-                className="text-teal-700 dark:text-teal-400 hover:underline font-bold text-xs"
-              >
-                {lang === 'bn' ? 'অটো-ফিল করুন' : 'Auto Fill'}
-              </button>
             </div>
 
             {/* Submit Button */}
@@ -192,31 +194,15 @@ export const AdminLoginModal = () => {
             </button>
           </form>
 
-          {/* Active Credentials Callout (Directly provides credentials to user as requested) */}
-          <div className="mt-5 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                <Sparkles size={13} className="text-amber-500" />
-                {lang === 'bn' ? 'অ্যাডমিন লগইন তথ্য (Credentials):' : 'Active Admin Credentials:'}
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 font-mono font-bold">
-                SUPER ADMIN
-              </span>
-            </div>
-            <div className="space-y-1 text-xs font-mono">
-              <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
-                <span>{lang === 'bn' ? 'ইমেইল/ইউজার:' : 'User:'}</span>
-                <strong className="text-slate-900 dark:text-white select-all">admin@softdew.com</strong>
-              </div>
-              <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
-                <span>{lang === 'bn' ? 'পাসওয়ার্ড:' : 'Pass:'}</span>
-                <strong className="text-emerald-700 dark:text-emerald-400 font-bold select-all">SoftDew@2026</strong>
-              </div>
-            </div>
+          {/* Security Notice */}
+          <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800 text-center">
+            <p className="text-[11px] text-slate-400 flex items-center justify-center gap-1.5">
+              <ShieldCheck size={13} className="text-teal-600" />
+              <span>{lang === 'bn' ? 'শুধুমাত্র অনুমোদিত সফট ডিউ অ্যাডমিনদের জন্য সংরক্ষিত' : 'Restricted to authorized Soft Dew administrators only'}</span>
+            </p>
           </div>
         </div>
       </div>
     </div>
   );
 };
-
