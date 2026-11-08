@@ -1,5 +1,5 @@
 import React from 'react';
-import { Store, Menu, Truck, ShoppingBag, LayoutDashboard, Heart } from 'lucide-react';
+import { Store, Menu, Truck, ShoppingBag, LayoutDashboard, Lock, ShieldCheck } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 
 export const MobileBottomNav = () => {
@@ -10,8 +10,19 @@ export const MobileBottomNav = () => {
     setIsCartOpen,
     setIsCategoryRailOpen,
     setIsTrackOrderOpen,
+    openDashboard,
+    isAdminAuthenticated,
     lang
   } = useStore();
+
+  const handleAdminClick = () => {
+    if (activeView === 'dashboard') {
+      setActiveView('store');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      openDashboard();
+    }
+  };
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-slate-200/80 dark:border-slate-800 py-1.5 px-3 shadow-lg">
@@ -68,14 +79,14 @@ export const MobileBottomNav = () => {
 
         {/* Dashboard / Admin */}
         <button
-          onClick={() => { setActiveView('dashboard'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+          onClick={handleAdminClick}
           className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all ${
             activeView === 'dashboard' 
               ? 'text-teal-700 dark:text-teal-400 font-bold' 
               : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
           }`}
         >
-          <LayoutDashboard size={19} />
+          {isAdminAuthenticated ? <ShieldCheck size={19} /> : <Lock size={19} />}
           <span className="text-[10px] mt-0.5">{lang === 'bn' ? 'অ্যাডমিন' : 'Admin'}</span>
         </button>
       </div>

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { 
   Phone, 
   Truck, 
-  HelpCircle, 
   Search, 
   Camera, 
   Menu, 
@@ -13,7 +12,8 @@ import {
   Moon, 
   X, 
   GitCompareArrows,
-  Sparkles,
+  Lock,
+  ShieldCheck,
   Scissors
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
@@ -39,20 +39,30 @@ export const Navbar = () => {
     toggleLang,
     theme,
     toggleTheme,
-    currency
+    currency,
+    isAdminAuthenticated,
+    openDashboard
   } = useStore();
 
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
+  const handleDashboardClick = () => {
+    if (activeView === 'dashboard') {
+      setActiveView('store');
+    } else {
+      openDashboard();
+    }
+  };
+
   return (
     <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 transition-colors shadow-xs">
-      {/* 1. Top Utility Bar (Matching SalonixBD) */}
+      {/* 1. Top Utility Bar */}
       <div className="bg-slate-900 text-slate-300 text-[11px] py-1.5 border-b border-slate-800">
         <div className="container mx-auto px-4 flex items-center justify-between">
           {/* Hotline & WhatsApp */}
           <div className="flex items-center gap-4">
-            <a 
-              href="tel:+8801511008100" 
+            <a
+              href="tel:+8801511008100"
               className="flex items-center gap-1.5 hover:text-emerald-400 transition-colors"
             >
               <Phone size={12} className="text-emerald-400" />
@@ -60,9 +70,9 @@ export const Navbar = () => {
                 <strong className="text-white">{lang === 'bn' ? 'হটলাইন:' : 'Hotline:'}</strong> +880 1511-008100
               </span>
             </a>
-            <a 
-              href="https://wa.me/8801511008100" 
-              target="_blank" 
+            <a
+              href="https://wa.me/8801511008100"
+              target="_blank"
               rel="noreferrer"
               className="hidden sm:flex items-center gap-1 text-emerald-400 hover:underline font-semibold"
             >
@@ -98,7 +108,7 @@ export const Navbar = () => {
               <button
                 onClick={toggleLang}
                 className={`px-1.5 py-0.5 rounded transition-all ${
-                  lang === 'bn' ? 'bg-emerald-600 text-white font-bold' : 'text-slate-400 hover:text-white'
+                  lang === 'bn' ? 'bg-teal-700 text-white font-bold' : 'text-slate-400 hover:text-white'
                 }`}
               >
                 বাং
@@ -106,7 +116,7 @@ export const Navbar = () => {
               <button
                 onClick={toggleLang}
                 className={`px-1.5 py-0.5 rounded transition-all ${
-                  lang === 'en' ? 'bg-emerald-600 text-white font-bold' : 'text-slate-400 hover:text-white'
+                  lang === 'en' ? 'bg-teal-700 text-white font-bold' : 'text-slate-400 hover:text-white'
                 }`}
               >
                 EN
@@ -140,22 +150,22 @@ export const Navbar = () => {
 
           <div
             onClick={() => { setActiveView('store'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-            className="flex items-center gap-2 cursor-pointer group"
+            className="flex items-center gap-2.5 cursor-pointer group"
           >
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-800 via-teal-700 to-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-700/20 group-hover:scale-105 transition-transform">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-teal-800 via-teal-700 to-emerald-600 text-white flex items-center justify-center shadow-md shadow-teal-700/20 group-hover:scale-105 transition-transform">
               <Scissors size={20} />
             </div>
             <div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5">
                 <span className="font-extrabold text-xl tracking-tight text-slate-900 dark:text-white">
-                  Soft<span className="text-emerald-700 dark:text-emerald-400">Dew</span>
+                  Soft<span className="text-teal-700 dark:text-teal-400">Dew</span>
                 </span>
-                <span className="px-1.5 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-mono text-[9px] font-bold">
+                <span className="px-1.5 py-0.2 rounded bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 font-mono text-[9px] font-bold">
                   BD
                 </span>
               </div>
               <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium hidden sm:block">
-                {lang === 'bn' ? 'সেলুন আইটেমের অনলাইন শপ' : 'Pro Salon & Barber Marketplace'}
+                {lang === 'bn' ? 'সেলুন ও পার্লার আইটেমের নির্ভরযোগ্য শপ' : 'Pro Salon & Barber Marketplace'}
               </p>
             </div>
           </div>
@@ -165,7 +175,7 @@ export const Navbar = () => {
         <div className="flex-1 max-w-2xl relative">
           <div className={`relative flex items-center w-full rounded-2xl border transition-all ${
             isSearchFocused
-              ? 'border-emerald-600 ring-2 ring-emerald-500/20 bg-white dark:bg-slate-800'
+              ? 'border-teal-600 ring-2 ring-teal-500/20 bg-white dark:bg-slate-800'
               : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 hover:border-slate-300'
           }`}>
             <span className="pl-3.5 text-slate-400">
@@ -173,7 +183,7 @@ export const Navbar = () => {
             </span>
             <input
               type="text"
-              placeholder={lang === 'bn' ? "আপনার সেলুনের প্রয়োজনীয় আইটেম সমূহ খুঁজুন....." : "Search hair colors, clippers, chairs, scissors, keratin..."}
+              placeholder={lang === 'bn' ? "আপনার সেলুনের প্রয়োজনীয় পণ্য বা ব্র্যান্ড খুঁজুন..." : "Search hair colors, clippers, chairs, scissors..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setIsSearchFocused(true)}
@@ -191,7 +201,7 @@ export const Navbar = () => {
             {/* Camera Visual Search Trigger */}
             <button
               onClick={() => setIsVisualSearchOpen(true)}
-              className="pr-3.5 pl-2 text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 flex items-center gap-1 text-xs font-semibold"
+              className="pr-3.5 pl-2 text-teal-700 dark:text-teal-400 hover:text-teal-800 flex items-center gap-1 text-xs font-semibold"
               title="Search by image / ছবি দিয়ে খুঁজুন"
             >
               <Camera size={17} />
@@ -206,19 +216,33 @@ export const Navbar = () => {
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {/* Admin Dashboard Switcher Button */}
           <button
-            onClick={() => setActiveView(activeView === 'dashboard' ? 'store' : 'dashboard')}
-            className={`hidden md:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+            onClick={handleDashboardClick}
+            className={`hidden md:flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
               activeView === 'dashboard'
-                ? 'bg-slate-900 text-white shadow-sm ring-2 ring-emerald-500'
-                : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 hover:bg-emerald-100'
+                ? 'bg-slate-900 text-white shadow-sm ring-2 ring-teal-500'
+                : isAdminAuthenticated
+                  ? 'bg-teal-50 dark:bg-teal-950/40 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800/60 hover:bg-teal-100'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-200'
             }`}
           >
-            <LayoutDashboard size={15} />
-            <span>
-              {activeView === 'dashboard'
-                ? (lang === 'bn' ? 'স্টোরফ্রন্টে ফিরুন' : 'Back to Store')
-                : (lang === 'bn' ? 'ক্লায়েন্ট ড্যাশবোর্ড' : 'Client Dashboard')}
-            </span>
+            {activeView === 'dashboard' ? (
+              <>
+                <Scissors size={14} />
+                <span>{lang === 'bn' ? 'স্টোরফ্রন্টে ফিরুন' : 'Back to Store'}</span>
+              </>
+            ) : isAdminAuthenticated ? (
+              <>
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <LayoutDashboard size={14} />
+                <span>{lang === 'bn' ? 'অ্যাডমিন ড্যাশবোর্ড' : 'Admin Portal'}</span>
+              </>
+            ) : (
+              <>
+                <Lock size={13} className="text-slate-500" />
+                <LayoutDashboard size={14} />
+                <span>{lang === 'bn' ? 'অ্যাডমিন পোর্টাল' : 'Admin Login'}</span>
+              </>
+            )}
           </button>
 
           {/* Wishlist */}

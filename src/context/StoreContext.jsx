@@ -1,7 +1,23 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { INITIAL_PRODUCTS } from '../data/initialProducts';
 import { SALON_SERVICES } from '../data/initialServices';
 import { generateId } from '../utils/formatters';
+import {
+  isSupabaseConfigured,
+  getSupabaseClient,
+  dbFetchProducts,
+  dbInsertProduct,
+  dbUpdateProduct,
+  dbDeleteProduct,
+  dbUpdateStock,
+  dbFetchOrders,
+  dbInsertOrder,
+  dbUpdateOrderStatus,
+  dbFetchBookings,
+  dbInsertBooking,
+  dbUpdateBookingStatus,
+  dbSeedInitialData
+} from '../lib/supabase';
 
 const StoreContext = createContext();
 
@@ -13,8 +29,17 @@ export const useStore = () => {
   return context;
 };
 
+// Default Admin User & Credentials for Dashboard
+export const DEFAULT_ADMIN_CREDENTIALS = {
+  email: 'admin@softdew.com',
+  username: 'admin',
+  password: 'SoftDew@2026',
+  name: 'Soft Dew Admin',
+  role: 'Super Admin'
+};
+
 export const StoreProvider = ({ children }) => {
-  // 1. Language state: 'bn' (default, like SalonixBD) | 'en'
+  // 1. Language state: 'bn' (default) | 'en'
   const [lang, setLang] = useState(() => {
     try {
       return localStorage.getItem('salonix_lang') || 'bn';
@@ -33,22 +58,55 @@ export const StoreProvider = ({ children }) => {
   });
 
   useEffect(() => {
-    localStorage.setItem('salonix_lang', lang);
+    try {
+      localStorage.setItem('salonix_lang', lang);
+    } catch {}
   }, [lang]);
 
   useEffect(() => {
-    localStorage.setItem('salonix_theme', theme);
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-      document.body.setAttribute('data-theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      document.body.setAttribute('data-theme', 'light');
-    }
+    try {
+      localStorage.setItem('salonix_theme', theme);
+      if (theme === 'dark') {
+        document.documentElement.classList.add('dark');
+        document.body.setAttribute('data-theme', 'dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.body.setAttribute('data-theme', 'light');
+      }
+    } catch {}
   }, [theme]);
 
   const toggleLang = () => setLang((prev) => (prev === 'bn' ? 'en' : 'bn'));
   const toggleTheme = () => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+
+  // ==========================================
+  // ADMIN AUTHENTICATION STATE
+  // ==========================================
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => {
+    try {
+      const savedAuth = localStorage.getItem('softdew_admin_auth');
+      return savedAuth === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const [adminUser, setAdminUser] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem('softdew_admin_user');
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [isAdminLoginModalOpen, setIsAdminLoginModalOpen] = useState(false);
+
+  // ==========================================
+  // SUPABASE ACTIVE STATE
+  // ==========================================
+  const [isSupabaseActive, setIsSupabaseActive] = useState(false);
+  const [isDbLoading, setIsDbLoading] = useState(false);
 
   // 3. Products
   const [products, setProducts] = useState(() => {
@@ -60,7 +118,7 @@ export const StoreProvider = ({ children }) => {
     }
   });
 
-  // 4. Salon Services & Booking
+  // 4. Salon Services
   const [services, setServices] = useState(SALON_SERVICES);
 
   // 5. Cart
@@ -83,11 +141,11 @@ export const StoreProvider = ({ children }) => {
     }
   });
 
-  // 7. Product Comparison List (up to 4 items)
+  // 7. Product Comparison List
   const [compareList, setCompareList] = useState([]);
   const [isCompareOpen, setIsCompareOpen] = useState(false);
 
-  // 8. Orders (with realistic Bangladeshi tracking timeline)
+  // 8. Orders
   const [orders, setOrders] = useState(() => {
     try {
       const saved = localStorage.getItem('salonix_orders');
@@ -97,6 +155,8 @@ export const StoreProvider = ({ children }) => {
           id: 'SLX-9042',
           customerName: 'MD. Rafiqul Islam (Gentlemen Salon)',
           customerPhone: '01711-234567',
+          division: 'Dhaka',
+          district: 'Dhaka',
           deliveryAddress: 'Shop #4, Metro Shopping Mall, Mirpur-10, Dhaka',
           paymentMethod: 'Cash on Delivery',
           status: 'In Transit',
@@ -137,6 +197,8 @@ export const StoreProvider = ({ children }) => {
           id: 'SLX-9018',
           customerName: 'Tania Akter (Glow Beauty Lounge)',
           customerPhone: '01844-987654',
+          division: 'Chattogram',
+          district: 'Chattogram',
           deliveryAddress: 'Road 7, O.R Nizam Road, GEC Circle, Chattogram',
           paymentMethod: 'bKash Online',
           status: 'Delivered',
@@ -145,17 +207,17 @@ export const StoreProvider = ({ children }) => {
           estimatedDelivery: 'Delivered on Oct 31',
           items: [
             {
-              id: 'slx-005',
-              name: 'VGR V-453 Professional Salon Hair Dryer 2200W',
-              price: 2350,
+              id: 'slx-003',
+              name: 'Kemei KM-1986 All-Metal Cordless Hair Clipper',
+              price: 2890,
               quantity: 1,
-              variant: 'Matte Black with Rose Gold',
-              image: 'https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&w=800&q=80'
+              variant: 'Royal Gold Edition',
+              image: 'https://images.unsplash.com/photo-1621607512214-68297480165e?auto=format&fit=crop&w=800&q=80'
             }
           ],
-          subtotal: 2350,
+          subtotal: 2890,
           shippingFee: 120,
-          total: 2470,
+          total: 3010,
           trackingTimeline: [
             { stage: 'Order Placed', time: '2 days ago', done: true },
             { stage: 'Order Confirmed', time: '2 days ago', done: true },
@@ -196,7 +258,7 @@ export const StoreProvider = ({ children }) => {
 
   // UI state
   const [activeView, setActiveView] = useState('store'); // 'store' | 'dashboard' | 'services'
-  const [dashboardTab, setDashboardTab] = useState('overview'); // 'overview' | 'products' | 'orders' | 'bookings'
+  const [dashboardTab, setDashboardTab] = useState('overview'); // 'overview' | 'products' | 'orders' | 'bookings' | 'supabase'
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedBrand, setSelectedBrand] = useState('all');
@@ -218,36 +280,221 @@ export const StoreProvider = ({ children }) => {
 
   // Toast
   const [toast, setToast] = useState(null);
-  const showToast = (message, type = 'success') => {
+  const showToast = useCallback((message, type = 'success') => {
     setToast({ message, type, id: Date.now() });
     setTimeout(() => {
       setToast(null);
-    }, 3800);
-  };
+    }, 4000);
+  }, []);
 
-  // Sync to localStorage
+  // Sync to local storage
   useEffect(() => {
-    localStorage.setItem('salonix_products', JSON.stringify(products));
+    try {
+      localStorage.setItem('salonix_products', JSON.stringify(products));
+    } catch {}
   }, [products]);
 
   useEffect(() => {
-    localStorage.setItem('salonix_cart', JSON.stringify(cart));
+    try {
+      localStorage.setItem('salonix_cart', JSON.stringify(cart));
+    } catch {}
   }, [cart]);
 
   useEffect(() => {
-    localStorage.setItem('salonix_wishlist', JSON.stringify(wishlist));
+    try {
+      localStorage.setItem('salonix_wishlist', JSON.stringify(wishlist));
+    } catch {}
   }, [wishlist]);
 
   useEffect(() => {
-    localStorage.setItem('salonix_orders', JSON.stringify(orders));
+    try {
+      localStorage.setItem('salonix_orders', JSON.stringify(orders));
+    } catch {}
   }, [orders]);
 
   useEffect(() => {
-    localStorage.setItem('salonix_bookings', JSON.stringify(bookings));
+    try {
+      localStorage.setItem('salonix_bookings', JSON.stringify(bookings));
+    } catch {}
   }, [bookings]);
 
-  // Product Operations (Dashboard & Store)
-  const addProduct = (newProduct) => {
+  // ==========================================
+  // SUPABASE DATA FETCH & SYNC
+  // ==========================================
+  const refreshDataFromSupabase = useCallback(async () => {
+    if (!isSupabaseConfigured()) {
+      setIsSupabaseActive(false);
+      return false;
+    }
+
+    setIsDbLoading(true);
+    try {
+      const [remoteProducts, remoteOrders, remoteBookings] = await Promise.all([
+        dbFetchProducts(),
+        dbFetchOrders(),
+        dbFetchBookings()
+      ]);
+
+      let connected = false;
+      if (remoteProducts !== null) {
+        connected = true;
+        if (remoteProducts.length > 0) {
+          setProducts(remoteProducts);
+        }
+      }
+
+      if (remoteOrders !== null && remoteOrders.length > 0) {
+        connected = true;
+        setOrders(remoteOrders);
+      }
+
+      if (remoteBookings !== null && remoteBookings.length > 0) {
+        connected = true;
+        setBookings(remoteBookings);
+      }
+
+      setIsSupabaseActive(connected);
+      return connected;
+    } catch (err) {
+      console.warn('Failed to load from Supabase:', err);
+      setIsSupabaseActive(false);
+      return false;
+    } finally {
+      setIsDbLoading(false);
+    }
+  }, []);
+
+  // Initialize Supabase data on mount
+  useEffect(() => {
+    const initDb = async () => {
+      if (isSupabaseConfigured()) {
+        await refreshDataFromSupabase();
+      }
+    };
+    initDb();
+  }, [refreshDataFromSupabase]);
+
+  // Seed everything to Supabase
+  const syncAllToSupabase = async () => {
+    const result = await dbSeedInitialData(products, orders, bookings);
+    if (result.success) {
+      setIsSupabaseActive(true);
+      showToast(result.message, 'success');
+    } else {
+      showToast(result.message, 'error');
+    }
+    return result;
+  };
+
+  // ==========================================
+  // ADMIN AUTHENTICATION METHODS
+  // ==========================================
+  const loginAdmin = async (identifier, password, rememberMe = true) => {
+    const trimmedId = (identifier || '').trim().toLowerCase();
+    const trimmedPass = (password || '').trim();
+
+    // Check credentials:
+    // Matches admin@softdew.com or admin with password SoftDew@2026
+    const isValidMaster =
+      (trimmedId === DEFAULT_ADMIN_CREDENTIALS.email.toLowerCase() ||
+       trimmedId === DEFAULT_ADMIN_CREDENTIALS.username.toLowerCase()) &&
+      trimmedPass === DEFAULT_ADMIN_CREDENTIALS.password;
+
+    // Also attempt Supabase Auth if client exists
+    let supabaseAuthSuccess = false;
+    const client = getSupabaseClient();
+    if (client && trimmedId.includes('@')) {
+      try {
+        const { data, error } = await client.auth.signInWithPassword({
+          email: trimmedId,
+          password: trimmedPass
+        });
+        if (!error && data?.user) {
+          supabaseAuthSuccess = true;
+        }
+      } catch {
+        // Fallback to master
+      }
+    }
+
+    if (isValidMaster || supabaseAuthSuccess) {
+      const userObj = {
+        email: trimmedId.includes('@') ? trimmedId : DEFAULT_ADMIN_CREDENTIALS.email,
+        name: DEFAULT_ADMIN_CREDENTIALS.name,
+        role: DEFAULT_ADMIN_CREDENTIALS.role,
+        loggedInAt: new Date().toISOString()
+      };
+
+      setIsAdminAuthenticated(true);
+      setAdminUser(userObj);
+      setIsAdminLoginModalOpen(false);
+      setActiveView('dashboard');
+
+      if (rememberMe) {
+        try {
+          localStorage.setItem('softdew_admin_auth', 'true');
+          localStorage.setItem('softdew_admin_user', JSON.stringify(userObj));
+        } catch (err) {
+          console.warn('Storage save error:', err);
+        }
+      }
+
+      showToast(
+        lang === 'bn'
+          ? 'স্বাগতম! আপনি সফলভাবে সফট ডিউ অ্যাডমিন ড্যাশবোর্ডে প্রবেশ করেছেন।'
+          : 'Welcome! You have signed into the Soft Dew Admin Dashboard.',
+        'success'
+      );
+      return { success: true };
+    }
+
+    return {
+      success: false,
+      message:
+        lang === 'bn'
+          ? 'ভুল ইমেইল বা পাসওয়ার্ড! সঠিক তথ্য দিয়ে আবার চেষ্টা করুন।'
+          : 'Invalid credentials. Please enter the correct email and password.'
+    };
+  };
+
+  const logoutAdmin = () => {
+    setIsAdminAuthenticated(false);
+    setAdminUser(null);
+    try {
+      localStorage.removeItem('softdew_admin_auth');
+      localStorage.removeItem('softdew_admin_user');
+    } catch (err) {
+      console.warn('Storage remove error:', err);
+    }
+
+    const client = getSupabaseClient();
+    if (client) {
+      try {
+        client.auth.signOut();
+      } catch (err) {
+        console.warn('SignOut error:', err);
+      }
+    }
+
+    setActiveView('store');
+    showToast(
+      lang === 'bn' ? 'অ্যাডমিন সেশন সমাপ্ত হয়েছে।' : 'Admin session logged out successfully.',
+      'info'
+    );
+  };
+
+  const openDashboard = () => {
+    if (isAdminAuthenticated) {
+      setActiveView('dashboard');
+    } else {
+      setIsAdminLoginModalOpen(true);
+    }
+  };
+
+  // ==========================================
+  // PRODUCT OPERATIONS (Local + Supabase)
+  // ==========================================
+  const addProduct = async (newProduct) => {
     const productWithMeta = {
       ...newProduct,
       id: generateId('slx').toLowerCase(),
@@ -260,46 +507,71 @@ export const StoreProvider = ({ children }) => {
       gallery: newProduct.gallery && newProduct.gallery.length > 0 ? newProduct.gallery : [newProduct.image],
       variants: newProduct.variants && newProduct.variants.length > 0 ? newProduct.variants : ['Standard']
     };
+
     setProducts((prev) => [productWithMeta, ...prev]);
+
+    // Push to Supabase if connected
+    if (isSupabaseActive) {
+      dbInsertProduct(productWithMeta).catch((e) => console.warn('Supabase product insert failed:', e));
+    }
+
     showToast(
       lang === 'bn' 
-        ? `"${productWithMeta.nameBn || productWithMeta.name}" পণ্যটি সফলভাবে ক্যাটালগে যুক্ত হয়েছে!` 
+        ? `"${productWithMeta.nameBn || productWithMeta.name}" পণ্যটি ক্যাটালগে যুক্ত হয়েছে!` 
         : `"${productWithMeta.name}" added to catalog!`, 
       'success'
     );
   };
 
-  const updateProduct = (id, updatedFields) => {
+  const updateProduct = async (id, updatedFields) => {
     setProducts((prev) =>
       prev.map((p) => (p.id === id ? { ...p, ...updatedFields } : p))
     );
+
+    if (isSupabaseActive) {
+      dbUpdateProduct(id, updatedFields).catch((e) => console.warn('Supabase product update failed:', e));
+    }
+
     showToast(
       lang === 'bn' ? 'পণ্যটির তথ্য সফলভাবে আপডেট হয়েছে!' : 'Product updated successfully!',
       'success'
     );
   };
 
-  const deleteProduct = (id) => {
+  const deleteProduct = async (id) => {
     setProducts((prev) => prev.filter((p) => p.id !== id));
+
+    if (isSupabaseActive) {
+      dbDeleteProduct(id).catch((e) => console.warn('Supabase delete failed:', e));
+    }
+
     showToast(
       lang === 'bn' ? 'পণ্যটি ক্যাটালগ থেকে মুছে ফেলা হয়েছে' : 'Product removed from catalog',
       'info'
     );
   };
 
-  const updateStock = (id, delta) => {
+  const updateStock = async (id, delta) => {
+    let finalStock = 0;
     setProducts((prev) =>
       prev.map((p) => {
         if (p.id === id) {
           const newStock = Math.max(0, (p.stock || 0) + delta);
+          finalStock = newStock;
           return { ...p, stock: newStock };
         }
         return p;
       })
     );
+
+    if (isSupabaseActive) {
+      dbUpdateStock(id, finalStock).catch((e) => console.warn('Supabase stock update failed:', e));
+    }
   };
 
-  // Cart Operations
+  // ==========================================
+  // CART OPERATIONS
+  // ==========================================
   const addToCart = (product, quantity = 1, variant = null) => {
     const chosenVariant = variant || (product.variants && product.variants[0]) || 'Standard';
     const effectivePrice = product.discountPrice || product.price;
@@ -360,7 +632,9 @@ export const StoreProvider = ({ children }) => {
 
   const clearCart = () => setCart([]);
 
-  // Wishlist
+  // ==========================================
+  // WISHLIST & COMPARE
+  // ==========================================
   const toggleWishlist = (product) => {
     setWishlist((prev) => {
       const exists = prev.some((p) => p.id === product.id);
@@ -382,7 +656,6 @@ export const StoreProvider = ({ children }) => {
 
   const isInWishlist = (productId) => wishlist.some((p) => p.id === productId);
 
-  // Compare List
   const toggleCompare = (product) => {
     setCompareList((prev) => {
       const exists = prev.some((p) => p.id === product.id);
@@ -401,7 +674,9 @@ export const StoreProvider = ({ children }) => {
 
   const isInCompare = (productId) => compareList.some((p) => p.id === productId);
 
-  // Orders
+  // ==========================================
+  // ORDERS OPERATIONS (Local + Supabase)
+  // ==========================================
   const placeOrder = (orderData) => {
     const newOrder = {
       ...orderData,
@@ -409,7 +684,7 @@ export const StoreProvider = ({ children }) => {
       createdAt: new Date().toISOString(),
       status: 'Processing',
       courier: orderData.district === 'Dhaka' ? 'Pathao Express' : 'Steadfast Courier BD',
-      estimatedDelivery: orderData.district === 'Dhaka' ? 'Within 24 Hours' : '2-3 Business Days',
+      estimatedDelivery: orderData.district === 'Dhaka' ? 'Within 24-48 Hours' : '2-3 Business Days',
       trackingTimeline: [
         { stage: 'Order Placed', time: 'Just Now', done: true },
         { stage: 'Order Confirmed', time: 'Under Verification', done: false },
@@ -422,14 +697,21 @@ export const StoreProvider = ({ children }) => {
 
     setOrders((prev) => [newOrder, ...prev]);
     clearCart();
+
+    // Push to Supabase if connected
+    if (isSupabaseActive) {
+      dbInsertOrder(newOrder).catch((e) => console.warn('Supabase order insert failed:', e));
+    }
+
     return newOrder;
   };
 
   const updateOrderStatus = (orderId, newStatus) => {
+    let updatedTimeline = [];
     setOrders((prev) =>
       prev.map((o) => {
         if (o.id === orderId) {
-          const updatedTimeline = (o.trackingTimeline || []).map((step, idx) => {
+          updatedTimeline = (o.trackingTimeline || []).map((step, idx) => {
             if (newStatus === 'Delivered') return { ...step, done: true };
             if (newStatus === 'In Transit' && idx <= 3) return { ...step, done: true };
             if (newStatus === 'Processing' && idx <= 1) return { ...step, done: true };
@@ -440,8 +722,56 @@ export const StoreProvider = ({ children }) => {
         return o;
       })
     );
+
+    if (isSupabaseActive) {
+      dbUpdateOrderStatus(orderId, newStatus, updatedTimeline).catch((e) =>
+        console.warn('Supabase order status update failed:', e)
+      );
+    }
+
     showToast(
       lang === 'bn' ? `অর্ডার স্ট্যাটাস পরিবর্তিত হয়েছে: ${newStatus}` : `Order status updated to: ${newStatus}`,
+      'success'
+    );
+  };
+
+  // ==========================================
+  // BOOKINGS / SALON INQUIRIES
+  // ==========================================
+  const bookSalonService = (bookingRecord) => {
+    const newBooking = {
+      ...bookingRecord,
+      id: generateId('BKG'),
+      createdAt: new Date().toISOString(),
+      status: 'Confirmed'
+    };
+
+    setBookings((prev) => [newBooking, ...prev]);
+
+    if (isSupabaseActive) {
+      dbInsertBooking(newBooking).catch((e) => console.warn('Supabase booking insert failed:', e));
+    }
+
+    showToast(
+      lang === 'bn' ? 'আপনার সেলুন বুকিং সফলভাবে গ্রহণ করা হয়েছে!' : 'Salon appointment requested successfully!',
+      'success'
+    );
+    return newBooking;
+  };
+
+  const updateBookingStatus = (bookingId, newStatus) => {
+    setBookings((prev) =>
+      prev.map((b) => (b.id === bookingId ? { ...b, status: newStatus } : b))
+    );
+
+    if (isSupabaseActive) {
+      dbUpdateBookingStatus(bookingId, newStatus).catch((e) =>
+        console.warn('Supabase booking status update failed:', e)
+      );
+    }
+
+    showToast(
+      lang === 'bn' ? `বুকিং স্ট্যাটাস: ${newStatus}` : `Booking status updated to ${newStatus}`,
       'success'
     );
   };
@@ -460,6 +790,21 @@ export const StoreProvider = ({ children }) => {
         theme,
         setTheme,
         toggleTheme,
+
+        // Admin Auth
+        isAdminAuthenticated,
+        adminUser,
+        isAdminLoginModalOpen,
+        setIsAdminLoginModalOpen,
+        loginAdmin,
+        logoutAdmin,
+        openDashboard,
+
+        // Supabase DB
+        isSupabaseActive,
+        isDbLoading,
+        refreshDataFromSupabase,
+        syncAllToSupabase,
 
         // Data
         products,
@@ -535,6 +880,8 @@ export const StoreProvider = ({ children }) => {
         updateStock,
         placeOrder,
         updateOrderStatus,
+        bookSalonService,
+        updateBookingStatus,
 
         // Notifications
         toast,

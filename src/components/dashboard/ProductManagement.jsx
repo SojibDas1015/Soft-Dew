@@ -139,7 +139,7 @@ export const ProductManagement = () => {
                           />
                           <div>
                             <span className="font-bold text-slate-900 dark:text-white line-clamp-1">
-                              {p.name}
+                              {lang === 'bn' ? p.nameBn || p.name : p.name}
                             </span>
                             <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-400">
                               <span className="font-semibold text-teal-700 dark:text-teal-400">{p.brand}</span>
